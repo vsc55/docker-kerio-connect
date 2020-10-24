@@ -3,11 +3,19 @@ FROM centos:8
 LABEL version="2.0" maintainer="vsc55@cerebelum.net" description="Contenedor de Kerio Connect"
 
 ARG KERIO_CONNECT_VER
-ENV ADMIN_PORT=4040 MODE_RUN=production KERIO_CONNECT_VER=${KERIO_CONNECT_VER:-9.3.0-5257}
+ENV ADMIN_PORT=4040 MODE_RUN=production KERIO_CONNECT_VER=${KERIO_CONNECT_VER}
 
 RUN	tmp_rpm=/tmp/kerio-connect-linux-x86_64.rpm; \
-	url_file=kerio-connect-${KERIO_CONNECT_VER}-linux-x86_64.rpm; \
-	url_path=dwn/connect/connect-${KERIO_CONNECT_VER}/$url_file; \
+	\
+	if [ "$KERIO_CONNECT_VER" = "" -o "$KERIO_CONNECT_VER" = "dev" ] ; \
+	then \
+		url_file=kerio-connect-linux-64bit.rpm; \
+		url_path=dwn/$url_file; \
+	else \
+		KERIO_CONNECT_VER_MINI = $(cut -d'-' -f1 <<< ${KERIO_CONNECT_VER})-$(cut -d'-' -f2 <<< ${KERIO_CONNECT_VER}); \
+		url_file=kerio-connect-${KERIO_CONNECT_VER}-linux-x86_64.rpm; \
+		url_path=dwn/connect/connect-${KERIO_CONNECT_VER_MINI}/$url_file; \
+	fi; \
 	\
 	curl -sf http://cdn.kerio.com/$url_path --output "$tmp_rpm"; \
 	if [ ! -f "$tmp_rpm" ] ; \
