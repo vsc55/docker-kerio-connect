@@ -27,6 +27,7 @@ CONFIG_MODE_CONSOLE=$CONFIG_DIR/consolemode.on
 #     - /opt/kerio/mailserver/charts.dat
 #         - /opt/kerio/mailserver/ldapmap
 
+KERIO_VERSION=$(cat /KERIO_VERSION)
 KERIO_MAINDIR=/opt/kerio/mailserver
 KERIO_DAEMON=mailserver
 KERIO_DAEMON_NAME=mailserver
@@ -137,17 +138,26 @@ f_exit () {
 
 
 
-
-
-
-# # *** CONSOLE MODE *** [INI] ***
+# *** CONSOLE MODE *** [INI] ***
 if [[ -f "$CONFIG_MODE_CONSOLE" ]]; then
 	echo "Modo Consola Iniciado"
 	/bin/bash
 	echo "Modo Consola Finalizado"
 	f_exit 0
 fi
-# # *** CONSOLE MODE *** [END] ***
+# *** CONSOLE MODE *** [END] ***
+
+
+
+
+# *** GET VERSION KERIO [INI] ***
+if [[ "$KERIO_VERSION" = "" ]]; then
+	echo "[ERROR] NO SE DETECTO LA VERSION DE KERIO CONNECT!!!"
+	f_exit 200001000
+else
+	echo "[INFO] - INICIANDO KERIO CONNECT ($KERIO_VERSION)..."
+fi
+# *** GET VERSION KERIO [END] ***
 
 
 
@@ -155,8 +165,6 @@ fi
 # *** CHECK - DAEMON *** [INI] ***
 
 echo -n "[CHECK] - COMPROBANDO INSTALACION DE KERIO CONNECT..."
-
-
 if [[ ! -d "$KERIO_MAINDIR" ]]; then
 	echo " [ERROR!!]"
 	echo " - NO SE DETECTO INSTALACION DE KERIO CONNECT EN [$KERIO_MAINDIR]!!!"
@@ -185,7 +193,7 @@ fi
 
 # *** CHECK - CONFIG *** [INI] ***
 
-echo "[CHECK] - COMPROBANDO PATH CONFIG..."
+echo "[CHECK] - COMPROBANDO PATH CONFIG Y LINKS..."
 if [[ ! -d "$CONFIG_DIR" ]]; then
 	mkdir "$CONFIG_DIR"
 fi
@@ -221,11 +229,9 @@ fi
 rm -fr "$KERIO_WEB_CUSTOM"
 ln -sf "$CONFIG_WEB_CUSTOM" "$KERIO_WEB_CUSTOM"
 
-
-
-
-
 # *** CHECK - CONFIG *** [END] ***
+
+
 
 
 # *** CHECK - STATUS DEMONIO *** [INI] ***
@@ -248,11 +254,11 @@ fun_remove_pid_kerio
 
 echo "[DAEMON] - INICIANDO DAEMON..."
 
-# if [[ -z "$LANG" ]]; then
-# 	export LANG=es_ES.utf8
-# 	export LC_ALL=$LANG
-# 	echo " - AJUSTANDO LANG Y LC_ALL [$LANG]... [OK]"
-# fi
+if [[ -z "$LANG" ]]; then
+	export LANG=es_ES.utf8
+fi
+export LC_ALL=$LANG
+echo " - AJUSTANDO LANG Y LC_ALL [$LANG]... [OK]"
 
 echo -n " - AJUSTANDO UNLIMIT'S..."
 ulimit -c unlimited
