@@ -1,3 +1,7 @@
-.git/
-.svn/
-.old/
+.old
+.svn
+.git
+.gitignore
+.github
+.gitattributes
+README.md

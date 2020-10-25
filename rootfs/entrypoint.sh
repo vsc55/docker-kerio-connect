@@ -10,6 +10,9 @@ case "$CMD" in
 	"start" )
 		exec /runKerioConnect.sh
 		;;
+	"bash" )
+		exec /bin/bash
+		;;
 	* )
 		# Run custom command. Thanks to this line we can still use
 		# "docker run our_image /bin/bash" and it will work 

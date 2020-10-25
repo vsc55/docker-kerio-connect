@@ -1,8 +1,9 @@
 FROM centos:8
 
-LABEL version="2.0" maintainer="vsc55@cerebelum.net" description="Contenedor de Kerio Connect"
-
 ARG KERIO_CONNECT_VER
+
+LABEL version="3.0" maintainer="vsc55@cerebelum.net" description="Contenedor de Kerio Connect v${KERIO_CONNECT_VER:-DEV}"
+
 ENV ADMIN_PORT=4040 MODE_RUN=production LANG=en_US.utf8
 
 RUN	tmp_rpm=/tmp/kerio-connect-linux-x86_64.rpm; \
@@ -46,7 +47,7 @@ RUN	tmp_rpm=/tmp/kerio-connect-linux-x86_64.rpm; \
 	rm -rf /var/cache/yum;
 
 WORKDIR /
-COPY --chown=root:root ["entrypoint.sh", "health_check.sh", "runKerioConnect.sh", "./"]
+COPY --chown=root:root /rootfs /
 
 #Fix, hub.docker.com auto buils
 RUN chmod +x /*.sh

@@ -1,8 +1,18 @@
 # Docker Kerio Connect
 
-## Create Container:
+Because the Kerio Connect backup system gives problams if any of the folders is symbolic links, we have chosen to use **MOUNT**.
+For MOUNT to work correctly within the coner, it is necessary to add the `--privileged` parameter when creating the docker.
+
+Backup problem symlink:
 ```
+Backup has skipped symlink directory /opt/kerio/mailserver/sslcert
+Backup has skipped symlink directory /opt/kerio/mailserver/settings
+```
+
+## Create Container:
+```bash
 docker run --name="KerioConnect" \
+--privileged \
 -p 80:80/tcp -p 443:443/tcp -p 4040:4040/tcp \
 -p 25:25/tcp -p 465:465/tcp -p 587:587/tcp \
 -p 110:110/tcp -p 995:995/tcp \
@@ -14,8 +24,9 @@ docker run --name="KerioConnect" \
 vsc55/kerio-connect:latest
 ```
 or
-```
+```bash
 docker create --name "KerioConnect" \
+--privileged \
 -p 80:80/tcp -p 443:443/tcp -p 4040:4040/tcp \
 -p 25:25/tcp -p 465:465/tcp -p 587:587/tcp \
 -p 110:110/tcp -p 995:995/tcp \
@@ -32,10 +43,11 @@ docker container start KerioConnect
 ---
 ## Network Host:
 If we want to use the host adapter and thus avoid having to add all the ports we can do it in the following way:
-```
+```bash
 docker run --name "KerioConnect" \
--v /#PATH IN HOST#:/config \
+--privileged \
 --network host \
+-v /#PATH IN HOST#:/config \
 vsc55/kerio-connect:latest
 ```
 

@@ -3,31 +3,21 @@
 #
 # Script de control de arranque para demonio Kerio Connect.
 #
-# @verions 2.0
+# @verions 3.0
 # @fecha 23/10/2020
 # @author Javier Pastor
 # @license PENDIENTE
 #
 
+DEFAULT_LANG=en_US.utf8
+
 CONFIG_DIR=/config
-CONFIG_LINKS_D=(store license sslcert settings)
-CONFIG_LINKS_F=(mailserver.cfg users.cfg cluster.cfg stats.dat charts.dat mailserver.cfg.bak users.cfg.bak cluster.cfg.bak encryption.log derby.log)
-CONFIG_WEB_CUSTOM=$CONFIG_DIR/web
 CONFIG_MODE_CONSOLE=$CONFIG_DIR/consolemode.on
+CONFIG_LOG=$CONFIG_DIR/docker.log
 
-#     - /opt/kerio/mailserver/store
-#     - /opt/kerio/mailserver/license
-#     - /opt/kerio/mailserver/sslcert
-#     - /opt/kerio/mailserver/settings
-#     - /opt/kerio/mailserver/web/custom/*
-#     - /opt/kerio/mailserver/mailserver.cfg
-#     - /opt/kerio/mailserver/users.cfg
-#     - /opt/kerio/mailserver/cluster.cfg
-#     - /opt/kerio/mailserver/stats.dat
-#     - /opt/kerio/mailserver/charts.dat
-#         - /opt/kerio/mailserver/ldapmap
-
-KERIO_VERSION=$(cat /KERIO_VERSION)
+KERIO_DEFAULT=/config_default
+KERIO_VERSION_F=/KERIO_VERSION
+KERIO_VERSION=$(cat $KERIO_VERSION_F)
 KERIO_MAINDIR=/opt/kerio/mailserver
 KERIO_DAEMON=mailserver
 KERIO_DAEMON_NAME=mailserver
@@ -94,19 +84,17 @@ fun_wait_until_start_kerio() {
 }
 
 fun_start_watchdog_kerio() {
-	echo "[WATCHDOG] - INICIADO..."
 	while true
 	do
 		fun_isRunDaemonKerio	
 		[[ $? -gt 0 ]] && break
 		sleep $OPT_WATCHDOG_DELAY
 	done
-	echo "[WATCHDOG] - FINALIZADO - PROCESO TERMINADO!!!"
 }
 
 f_exit () {
-	local exitCode
-	exitCode=$1
+	local exitCode=$1
+	echo "[$(date '+%Y/%m/%d %H:%M:%S')] - exitCode: $exitCode" >> $CONFIG_LOG
 	[[ -z exitCode ]] && exitCode=0
 	if [[ exitCode -le 99999999 ]]; then
 		#0 - 99999999
@@ -135,14 +123,44 @@ f_exit () {
 	fi
 }
 
+fun_create_item()
+{
+	local loc_item=$1
+	local loc_file=$2
+
+	if [[ -d "$loc_item" ]]; then
+		echo -n " [FIX ] - CREATING FOLDER ($loc_file)..."
+		mkdir "$loc_file" 2>> $CONFIG_LOG
+		if [ $? -gt 0 ]; then
+			echo " [ERR!!]"
+			return 1
+		fi
+
+	elif [[ -f "$loc_item" ]]; then
+		echo -n " [FIX ] - CREATING FILE ($loc_file)..."
+		touch "$loc_file" 2>> $CONFIG_LOG
+		if [ $? -gt 0 ]; then
+			echo " [ERR!!]"
+			return 2
+		fi
+
+	else
+		echo -n " [ERR!] - ERROR CREATING ($loc_file) UNKNOWN TYPE!"
+		return 3
+	fi
+	echo " [OK]"
+	return 0
+}
+
+
 
 
 
 # *** CONSOLE MODE *** [INI] ***
 if [[ -f "$CONFIG_MODE_CONSOLE" ]]; then
-	echo "Modo Consola Iniciado"
+	echo "*** CONSOLE MODE [INITIATED] **"
 	/bin/bash
-	echo "Modo Consola Finalizado"
+	echo "*** CONSOLE MODE [TERMINATED] **"
 	f_exit 0
 fi
 # *** CONSOLE MODE *** [END] ***
@@ -152,10 +170,10 @@ fi
 
 # *** GET VERSION KERIO [INI] ***
 if [[ "$KERIO_VERSION" = "" ]]; then
-	echo "[ERROR] NO SE DETECTO LA VERSION DE KERIO CONNECT!!!"
+	echo "[ERROR] KERIO CONNECT VERSION NOT DETECTED!!!"
 	f_exit 200001000
 else
-	echo "[INFO] - INICIANDO KERIO CONNECT ($KERIO_VERSION)..."
+	echo "[INFO] - STARTING KERIO CONNECT ($KERIO_VERSION)..."
 fi
 # *** GET VERSION KERIO [END] ***
 
@@ -163,20 +181,19 @@ fi
 
 
 # *** CHECK - DAEMON *** [INI] ***
-
-echo -n "[CHECK] - COMPROBANDO INSTALACION DE KERIO CONNECT..."
+echo -n "[CHECK] - CHECKING KERIO CONNECT INSTALLATION..."
 if [[ ! -d "$KERIO_MAINDIR" ]]; then
 	echo " [ERROR!!]"
-	echo " - NO SE DETECTO INSTALACION DE KERIO CONNECT EN [$KERIO_MAINDIR]!!!"
+	echo " - NO KERIO CONNECT INSTALLATION DETECTED [$KERIO_MAINDIR]!!!"
 	f_exit 310001000
 elif [[ ! -f "$KERIO_EXEC" ]]; then
 	echo " [ERROR!!]"
-	echo "[ERROR!!] - NO SE HA LOCALIZADO DEMONIO DE KERIO CONNECT EN [$KERIO_EXEC]!!!"
+	echo " - KERIO CONNECT DEMON NOT LOCATED [$KERIO_EXEC]!!!"
 	f_exit 310005000
 elif [[ ! -x "$KERIO_EXEC" ]]; then
 	echo " [WARN]"
-	echo -n " - FIX: CORRIGIENDO PERMISOS!"
-	chmod +x "$KERIO_EXEC"
+	echo -n " - FIX: PERMISSIONS..."
+	chmod +x "$KERIO_EXEC" 2>> $CONFIG_LOG
 	if [[ $? -gt 0 ]]; then 
 		echo " [ERR!!]"
 		f_exit 310010000
@@ -185,110 +202,116 @@ elif [[ ! -x "$KERIO_EXEC" ]]; then
 else
 	echo " [OK]"
 fi
-
 # *** CHECK - DAEMON *** [END] ***
 
 
 
 
 # *** CHECK - CONFIG *** [INI] ***
-
-echo "[CHECK] - COMPROBANDO PATH CONFIG Y LINKS..."
+echo "CHECKING THE DIRECTORY STRUCTURE..."
 if [[ ! -d "$CONFIG_DIR" ]]; then
-	mkdir "$CONFIG_DIR"
-fi
-if [[ ! -d "$CONFIG_DIR" ]]; then
-	echo "[ERROR] - NO SE HA PODIDO CREAR EL DIRECTORIO DE CONFIGURACION [$CONFIG_DIR]!!!"
+	echo " [ERR!] - CONFIG FOLDER [$CONFIG_DIR] DOES NOT EXIST!"
 	f_exit 320001000
+else
+	echo " [ OK ] - CONFIG FOLDER [$CONFIG_DIR] EXISTS."
+	cp -u "$KERIO_VERSION_F" "$CONFIG_DIR"
+	if [[ $? -gt 0 ]]; then 
+		echo " [ERR!] - ERROR UPDATING FILE VERSION!"
+		f_exit 320002000
+	else
+		echo " [ OK ] - FILE VERSION UPDATED SUCCESSFULLY."
+	fi
 fi
 
-for i in "${CONFIG_LINKS_D[@]}"
-do
-	if [[ ! -d "$CONFIG_DIR/$i" ]]; then
-		mkdir "$CONFIG_DIR/$i"
-		echo "[NEW] - CREANDO DIR CONFIG [$CONFIG_DIR/$i]"
-	fi
+for item in $KERIO_DEFAULT/*; do
+    item_name=$(basename $item)
+    item_config=$CONFIG_DIR/$item_name
+	item_kerio=$KERIO_MAINDIR/$item_name
 
-	if [[ ! -d "$KERIO_MAINDIR/$i" ]]; then
-		ln -sf "$CONFIG_DIR/$i" "$KERIO_MAINDIR/$i"
-		echo "[FIX] - CREANDO LINK [$KERIO_MAINDIR/$i]"
-	fi
+    if [[ ! -e "$item_config" ]]; then
+		fun_create_item $item $item_config || f_exit 320006010
+    fi
+	
+	if [[ ! -e "$item_kerio" ]]; then
+		fun_create_item $item $item_kerio || f_exit 320006050
+    fi
 done
 
-for i in "${CONFIG_LINKS_F[@]}"
-do
-	if [[ ! -f "$KERIO_MAINDIR/$i" ]]; then
-		ln -sf "$CONFIG_DIR/$i" "$KERIO_MAINDIR/$i"
-		echo "[FIX] - CREANDO LINK [$KERIO_MAINDIR/$i]"
-	fi
-done
-
-if [[ ! -d "$CONFIG_WEB_CUSTOM" ]]; then
-	mkdir "$CONFIG_WEB_CUSTOM"
-fi
-rm -fr "$KERIO_WEB_CUSTOM"
-ln -sf "$CONFIG_WEB_CUSTOM" "$KERIO_WEB_CUSTOM"
-
+# TODO: ACTUALIZAR PROPIETARIO DE TODOS LOS DATOS
 # *** CHECK - CONFIG *** [END] ***
 
 
 
 
-# *** CHECK - STATUS DEMONIO *** [INI] ***
-
-echo -n "[CHECK] - COMPROBANDO ESTADO DEL DEMONIO..."
-if fun_isRunDaemonKerio; then
-	echo " [ABORT!!!!]"
-	echo " - PROCESO ABORTADO YA QUE EL DEMONIO YA SE ESTA EJECUTANDO!!"
+# *** MOUNT FOLDER AND FILES [INI] ***
+echo -n "[MOUNT] - MOUNT FOLDERS AND FILES..."
+mount -a 2>> $CONFIG_LOG
+if [ $? -gt 0 ]; then
+	echo " [ERRRO!!]"
+	echo " - ERROR MOUNT!"
 	f_exit 400000000
 fi
 echo " [OK]"
-fun_remove_pid_kerio
+# *** MOUNT FOLDER AND FILES [END] ***
 
+
+
+
+# *** CHECK - STATUS DEMONIO *** [INI] ***
+echo -n "[CHECK] - CHECKING DEMON STATUS..."
+if fun_isRunDaemonKerio; then
+	echo " [ABORT!!!!]"
+	echo " - PROCESS ABORTED AS THE DEMON IS ALREADY RUNNING!"
+	f_exit 500000000
+fi
+echo " [OK]"
+fun_remove_pid_kerio
 # *** CHECK - STATUS DEMONIO *** [END] ***
 
 
 
 
 # *** DAEMON *** [INI] ***
-
-echo "[DAEMON] - INICIANDO DAEMON..."
+echo "[DAEMON] - STARTING DAEMON..."
 
 if [[ -z "$LANG" ]]; then
-	export LANG=es_ES.utf8
+	NEW_LANG=$DEFAULT_LANG
+else
+	NEW_LANG=$LANG
 fi
-export LC_ALL=$LANG
-echo " - AJUSTANDO LANG Y LC_ALL [$LANG]... [OK]"
+echo -n " - SET LANG ($NEW_LANG)..."
+export LANG=$NEW_LANG
+export LC_ALL=$NEW_LANG
+echo " [OK]"
 
-echo -n " - AJUSTANDO UNLIMIT'S..."
+echo -n " - SET UNLIMIT'S..."
 ulimit -c unlimited
 ulimit -s 2048
 ulimit -n 10240
 echo " [OK]"
 
-
+echo -n " - STARTING..."
 $KERIO_EXEC $KERIO_MAINDIR
-RETVAL=$?
-
-if [ $RETVAL -eq 0 ]; then
+if [ $? -eq 0 ]; then
 	# Waiting to complete start
-	fun_wait_until_start_kerio
-	RETVAL=$?
+	if ! fun_wait_until_start_kerio; then
+		echo " [ERRRO!!]"
+		echo " - ERROR IN STARTING THE DEMON!"
+		f_exit 620000000
+	fi
 else
-	echo " - NO SE PUDO INICIAR [ERROR!!!!]"
+	echo " [ERRRO!!]"
+	echo " - FAILED TO START!"
 	f_exit 610000000
 fi
-
-if [ $RETVAL -eq 0 ]; then
-	echo " - PROCESO DE INICIO FINALIZADO [OK]"
-else
-	echo " - ERROR AL INICIAR EL DEMONIO [ERROR!!!!]"
-	f_exit 620000000
-fi
-
+echo " [OK]"
 # *** DAEMON *** [END] ***
 
 
+
+
 # *** WATCHDOG *** [INI] ***
+echo "[WATCHDOG] - RUNNING..."
 fun_start_watchdog_kerio
+echo "[WATCHDOG] - PROCESS FINISHED"
 # *** WATCHDOG *** [END] ***

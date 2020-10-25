@@ -1,0 +1,20 @@
+/config/license             /opt/kerio/mailserver/license               none    bind    0 0
+/config/settings            /opt/kerio/mailserver/settings              none    bind    0 0
+/config/sslcert             /opt/kerio/mailserver/sslcert               none    bind    0 0
+/config/store               /opt/kerio/mailserver/store                 none    bind    0 0
+/config/web                 /opt/kerio/mailserver/web/custom            none    bind    0 0
+
+/config/charts.dat          /opt/kerio/mailserver/charts.dat            none    bind    0 0
+/config/cluster.cfg         /opt/kerio/mailserver/cluster.cfg           none    bind    0 0
+/config/cluster.cfg.bak     /opt/kerio/mailserver/cluster.cfg.bak       none    bind    0 0
+/config/derby.log           /opt/kerio/mailserver/derby.log             none    bind    0 0
+/config/encryption.log      /opt/kerio/mailserver/encryption.log        none    bind    0 0
+/config/mailserver.cfg      /opt/kerio/mailserver/mailserver.cfg        none    bind    0 0
+/config/mailserver.cfg.bak  /opt/kerio/mailserver/mailserver.cfg.bak    none    bind    0 0
+/config/stats.dat           /opt/kerio/mailserver/stats.dat             none    bind    0 0
+/config/users.cfg           /opt/kerio/mailserver/users.cfg             none    bind    0 0
+/config/users.cfg.bak       /opt/kerio/mailserver/users.cfg.bak         none    bind    0 0
+
+
+# NO SE GUARDA EN /config, SE PIERDE CONTENIDO
+# /config/ldapmap             /opt/kerio/mailserver/ldapmap               none    bind    0 0
