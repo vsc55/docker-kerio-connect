@@ -29,6 +29,9 @@ RUN	tmp_rpm=/tmp/kerio-connect-linux-x86_64.rpm; \
 		exit 1; \
 	fi; \
 	\
+	find /etc/yum.repos.d/ -type f -exec sed -i 's/mirrorlist=/#mirrorlist=/g' {} +; \
+	find /etc/yum.repos.d/ -type f -exec sed -i 's/#baseurl=/baseurl=/g' {} +; \
+	find /etc/yum.repos.d/ -type f -exec sed -i 's/mirror.centos.org/vault.centos.org/g' {} +; \
 	yum -y update; \
  	yum -y install \
 	glibc-langpack-en \
