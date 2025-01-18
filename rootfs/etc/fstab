@@ -18,3 +18,4 @@
 
 # NO SE GUARDA EN /config, SE PIERDE CONTENIDO
 # /config/ldapmap             /opt/kerio/mailserver/ldapmap               none    bind    0 0
+# /config/myspell             /opt/kerio/mailserver/myspell               none    bind    0 0
